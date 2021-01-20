@@ -1,61 +1,36 @@
 require 'nokogiri'
 require 'open-uri'
-require 'pry'
 
-def get_student_urls  
-  html = open('http://ruby007.students.flatironschool.com/')  
+require_relative './course.rb'
 
-  Nokogiri::HTML(html).css("div.big-comment h3 a").collect do |student_tag|
-    "http://ruby007.students.flatironschool.com/" + student_tag['href']
+class Scraper
+
+  def get_page
+    doc = Nokogiri::HTML(open("http://learn-co-curriculum.github.io/site-for-scraping/courses"))
   end
-end
 
-def get_student_pages
-  get_student_urls.collect { |url| Nokogiri::HTML(open(url)) }
-end
-
-def get_student_names
-  get_student_pages.collect { |page| page.css("h4.ib_main_header").text }
-end
-
-def get_student_bios
-  get_student_pages.collect { |page| page.css("div.services p").first.text.strip }
-end
-
-def get_student_education
-  get_student_pages.collect { |page| page.css("div.services ul").first.text.strip }
-end
-
-def get_student_work
-  get_student_pages.collect { |page| page.css("div.services p")[1].text.strip }
-end
-
-def get_student_cred
-  get_student_pages.collect do |page| 
-    page.css("div#ok-text-column-2 div p a").collect do |line_of_code|
-      line_of_code["href"]
-    end[0..3].compact 
+  def get_courses
+    self.get_page.css(".post")
   end
-end 
 
-def create_student_hash
-  index = 0
-  student_names = get_student_names
-  student_bios = get_student_bios
-  student_educations = get_student_education
-  student_works = get_student_work
-  student_creds = get_student_cred
-  people = []
-
-  get_student_pages.size.times do
-    student_hash = {}
-    student_hash[:name] = student_names[index]
-    student_hash[:bio] = student_bios[index]
-    student_hash[:education] = student_educations[index]
-    student_hash[:work] = student_works[index]
-    student_hash[:coder_cred] = student_creds[index]
-    index += 1
-    people << student_hash
+  def make_courses
+    self.get_courses.each do |post|
+      course = Course.new
+      course.title = post.css("h2").text
+      course.schedule = post.css(".date").text
+      course.description = post.css("p").text
+    end
   end
-  people
+
+  def print_courses
+    self.make_courses
+    Course.all.each do |course|
+      if course.title
+        puts "Title: #{course.title}"
+        puts "  Schedule: #{course.schedule}"
+        puts "  Description: #{course.description}"
+      end
+    end
+  end
+
 end
